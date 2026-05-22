@@ -1,6 +1,0 @@
-streamlit
-seaborn
-japanize-matplotlib
-networkx
-pandas
-matplotlib

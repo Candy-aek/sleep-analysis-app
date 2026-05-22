@@ -1,0 +1,4 @@
+streamlit
+seaborn
+japanize-matplotlib
+networkx

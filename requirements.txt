@@ -4,3 +4,5 @@ japanize-matplotlib
 networkx
 pandas
 matplotlib
+plotly
+

@@ -5,7 +5,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-import japanize_matplotlib  # 日本語フォント問題を解決
+plt.rcParams['font.family'] = 'IPAexGothic'
+plt.rcParams['font.family'] = 'IPAexGothic'
 import networkx as nx  # ネットワークグラフ用
 import os
 

@@ -5,4 +5,5 @@ networkx
 pandas
 matplotlib
 plotly
-distutils
+numpy
+openpyxl

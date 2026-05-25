@@ -5,12 +5,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-plt.rcParams['font.family'] = 'IPAexGothic'
-plt.rcParams['font.family'] = 'IPAexGothic'
 import networkx as nx  # ネットワークグラフ用
 import os
 
-# グラフのフォント設定
+# --- 0. グラフのフォント・スタイル設定（日本語化・文字化け対策） ---
 plt.rcParams['font.family'] = 'MS Gothic'
 sns.set(font='MS Gothic', style='whitegrid')
 
@@ -61,7 +59,7 @@ def load_and_preprocess():
     name_map = {
         'ＩｏＴ＋ＡＩ科': 'IoT+AI科', 'Ｗｅｂ動画クリエイター科': 'Web動画クリエイター科',
         'データサイエンス＋ＡＩ科': 'データサイエンス＋AI科', 'データサイエンス＋AI科': 'データサイエンス＋AI科',
-        'ｹﾞｰﾑ+ﾃﾞｼﾞﾀﾙｸリエイター科': 'ゲーム＋デジタルクリエイター科', '建　筑　科': '建築科'
+        'ｹﾞｰﾑ+ﾃﾞｼﾞﾀﾙｸリエイター科': 'ゲーム＋デジタルクリエイター科', '建 筑 科': '建築科'
     }
     df['学科名_修正'] = df['学科'].replace(name_map).fillna('未回答').astype(str)
     df['学年'] = df['学年'].fillna('未回答').astype(str)
@@ -248,13 +246,13 @@ elif menu == "睡眠・集中の詳細分析":
     st.markdown("各タブを切り替えることで、数値を様々な角度から解析した統計グラフと詳細なデータ説明が閲覧できます。")
     df_plot = df.dropna(subset=['睡眠時間_数値', '集中度_数値'])
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    # 【修正箇所】「② 回帰直線つき散布図」を削除し、タブを5つに再構成
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "① 要因ネットワークグラフ", 
-        "② 回帰直線つき散布図", 
-        "③ 集中度の円グラフ", 
-        "④ 六角形ヒートマップ", 
-        "📈 ⑤ 要因別の相関トレンド散布図", # ココをご指定のグラフに！
-        "✨ ⑥ きれいなバイオリン分布図"
+        "② 集中度の円グラフ", 
+        "③ 六角形ヒートマップ", 
+        "📈 ④ 要因別の相関トレンド散布図", 
+        "✨ ⑤ きれいなバイオリン分布図"
     ])
     
     with tab1:
@@ -278,18 +276,12 @@ elif menu == "睡眠・集中の詳細分析":
         st.pyplot(fig)
 
     with tab2:
-        st.subheader("📈 トレンドがわかる回帰直線つき散布図")
-        # 簡易的なトレンド表示のため、ここはPlotly標準の最小限の設定（trendlineを外して軽量ジッター化）に変更
-        fig_trend = px.scatter(df_plot, x="睡眠時間_数値", y="集中度_数値", labels={"睡眠時間_数値": "睡眠時間 (時間)", "集中度_数値": "集中スコア (1〜4)"}, template="plotly_white", opacity=0.5)
-        st.plotly_chart(fig_trend, use_container_width=True, key="detail_trend")
-
-    with tab3:
         st.subheader("🍕 全体の集中度内訳（割合）")
         fig_pie = px.pie(df_plot, names='集中度', color='集中度', color_discrete_map=color_map, hole=0.4, template="plotly_white")
         fig_pie.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    with tab4:
+    with tab3:
         st.subheader("⬢ 六角形ヒートマップ（密集地帯）")
         fig, ax = plt.subplots(figsize=(10, 5))
         hb = ax.hexbin(df_plot["睡眠時間_数値"], df_plot["集中度_数値"], gridsize=10, cmap="Blues", mincnt=1)
@@ -298,16 +290,15 @@ elif menu == "睡眠・集中の詳細分析":
         fig.colorbar(hb, ax=ax, label='学生数')
         st.pyplot(fig)
 
-    with tab5:
+    with tab4:
         st.subheader("📊 アルバイト有無別の相関トレンド散布図")
         st.markdown("**【エラー完全回避版】** `statsmodels` を使わず、NumPyの数式計算のみで「バイトあり（はい）」と「バイトなし（いいえ）」それぞれのトレンド直線を算出してプロットしました。")
         
-        # PlotlyのGraph Objectsを使い、参考画像のような「左右2画面の綺麗な散布図＋トレンド線」を手動で構築
         from plotly.subplots import make_subplots
         fig_custom = make_subplots(rows=1, cols=2, subplot_titles=("アルバイトあり (はい)", "アルバイトなし (いいえ)"), shared_yaxes=True)
         
         categories = ["はい", "いいえ"]
-        colors = ["#ef4444", "#3b82f6"] # 赤と青
+        colors = ["#ef4444", "#3b82f6"] 
         
         for i, cat in enumerate(categories):
             sub_df = df_plot[df_plot["バイト有無"] == cat]
@@ -316,7 +307,6 @@ elif menu == "睡眠・集中の詳細分析":
                 x_data = sub_df["睡眠時間_数値"].to_numpy()
                 y_data = sub_df["集中度_数値"].to_numpy()
                 
-                # 1. 散布図の点プロット（少しジッターを入れて見やすく）
                 x_jitter = x_data + np.random.uniform(-0.15, 0.15, size=len(x_data))
                 y_jitter = y_data + np.random.uniform(-0.15, 0.15, size=len(y_data))
                 
@@ -326,12 +316,10 @@ elif menu == "睡眠・集中の詳細分析":
                     row=1, col=i+1
                 )
                 
-                # 2. NumPyによる回帰直線（y = ax + b）の数式計算
                 a, b = np.polyfit(x_data, y_data, 1)
                 x_line = np.linspace(4, 9, 10)
                 y_line = a * x_line + b
                 
-                # 3. トレンド線のプロット
                 fig_custom.add_trace(
                     go.Scatter(x=x_line, y=y_line, mode='lines', name=f"トレンド傾向線",
                                line=dict(color=colors[i], width=3, dash='dash')),
@@ -345,7 +333,7 @@ elif menu == "睡眠・集中の詳細分析":
         st.plotly_chart(fig_custom, use_container_width=True)
         st.info("💡 **グラフの解説:** 左右の点線（トレンドライン）の「傾き」を比較してください。線が右肩下がり、あるいは右肩上がりになる度合いによって、アルバイトがどれほど睡眠と集中力の間で影響を及ぼしているかが一目瞭然になります。")
 
-    with tab6:
+    with tab5:
         st.subheader("🎻 きれいなバイオリン分布図（密度の波形）")
         fig, ax = plt.subplots(figsize=(10, 5))
         sns.violinplot(data=df_plot, x="睡眠時間", y="集中度_数値", palette="Pastel1", inner="quartile", ax=ax)

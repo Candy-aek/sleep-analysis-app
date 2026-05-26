@@ -5,9 +5,31 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-import networkx as nx  # ネットワークグラフ用
+import networkx as nx
 import os
 import plotly.io as pio
+
+# --- 0. グラフのフォント・スタイル設定（超強力版） ---
+
+# 1. OSに合わせてフォント候補のリストを作成
+if os.name == 'nt':  # Windowsの場合
+    # 英語名と日本語名の両方を候補に入れる
+    font_candidates = ['MS Gothic', 'MS Gothic', 'Yu Gothic', 'YuGothic', 'Meiryo', 'sans-serif']
+else:  # Mac / Linux (Streamlit Cloud) の場合
+    font_candidates = ['Noto Sans CJK JP', 'AppleGothic', 'sans-serif']
+
+# 2. Matplotlib / Seaborn / NetworkX 全体に候補リストを設定
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = font_candidates
+
+# 3. 代表として最初に見つかったフォント名をPlotly等に渡すための設定
+FONT_NAME = font_candidates[0]
+sns.set(font=FONT_NAME, style='whitegrid')
+plt.rcParams['font.family'] = FONT_NAME
+
+# Plotlyの設定
+pio.templates.default = "plotly_white"
+pio.templates[pio.templates.default].layout.font.family = FONT_NAME
 
 # --- 0. グラフのフォント・スタイル設定（OS自動判別・日本語化・文字化け対策） ---
 

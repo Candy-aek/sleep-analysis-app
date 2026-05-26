@@ -1,8 +1,9 @@
 streamlit
-seaborn
-networkx
 pandas
+numpy
+seaborn
 matplotlib
 plotly
-numpy
+networkx
 openpyxl
+scipy

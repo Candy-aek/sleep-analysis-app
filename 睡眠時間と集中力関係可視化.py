@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import networkx as nx
 import os
 import plotly.io as pio
+import japanize_matplotlib
 
 # --- 0. グラフのフォント・スタイル設定（超強力版） ---
 

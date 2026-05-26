@@ -57,51 +57,55 @@ def load_and_preprocess(uploaded_file):
 
     # 🌟 ファイルが未アップロード、または読み込みに失敗した場合のみデモデータを生成
     if df is None:
+        np.random.seed(42)
         data = {
-            'タイムスタンプ': pd.date_range(start='2026-05-01', periods=1),
+            'タイムスタンプ': pd.date_range(start='2026-05-01', periods=169),
             '学科': np.random.choice(['データサイエンス＋AI科', 'インテリア科', '建築監督科', '情報処理科'], 169),
             '学年': np.random.choice(['1年生', '2年生'], 169),
             '属性': np.random.choice(['日本人', '留学生'], 169),
             'バイト有無': np.random.choice(['はい', 'いいえ'], 169),
-            '平日バイト曜日': np.random.choice(['月曜日, 水曜日', '金曜日', '4から5回', '毎日'], 169),
+            '平日バイト曜日': np.random.choice(['月曜日, 水曜日', '金曜日', '4から5回', 'なし'], 169),
             '睡眠時間': np.random.choice(['5時間以下', '5時間から6時間', '6時間から7時間', '7時間から8時間', '8時間以上'], 169),
             '睡眠満足度': np.random.choice(['とても満足している', '満足している', 'あまり満足していない', 'まったく満足していない'], 169),
             '満足度が低い理由': np.random.choice(['アルバイト, 勉強', 'Youtube・tiktokなどの動画視聴', 'ゲーム', '特になし'], 169),
             '時間の使い方': '３から４時間',
-            '集中度': np.random.choice(['集中できている', 'あまり集中できていない', 'よく集中できていない', 'まったく集中できていない'], 169),
+            '集中度': np.random.choice(['よく集中できている', '集中できている', 'あまり集中できていない', 'まったく集中できていない'], 169),
             '集中できない理由': np.random.choice(['睡眠が足りていない, 疲れている', '日本語が難しい', '授業の内容が難しい'], 169)
         }
         df = pd.DataFrame(data)
         df.columns = base_columns
 
     # 🌟【null/空白対策】ベース列の未回答（NaN）を一括で補完して「null」を無くす
-    df['学科'] = df['学科'].fillna('未回答').astype(str)
-    df['学年'] = df['学年'].fillna('未回答').astype(str)
-    df['属性'] = df['属性'].fillna('未回答').astype(str)
-    df['バイト有無'] = df['バイト有無'].fillna('未回答').astype(str)
-    df['平日バイト曜日'] = df['平日バイト曜日'].fillna('なし').astype(str)
-    df['睡眠時間'] = df['睡眠時間'].fillna('未回答').astype(str)
-    df['睡眠満足度'] = df['睡眠満足度'].fillna('未回答').astype(str)
-    df['満足度が低い理由'] = df['満足度が低い理由'].fillna('特になし').astype(str)
-    df['時間の使い方'] = df['時間の使い方'].fillna('未回答').astype(str)
-    df['集中度'] = df['集中度'].fillna('未回答').astype(str)
-    df['集中できない理由'] = df['集中できない理由'].fillna('特になし').astype(str)
+    df['学科'] = df['学科'].fillna('未回答').astype(str).str.strip()
+    df['学年'] = df['学年'].fillna('未回答').astype(str).str.strip()
+    df['属性'] = df['属性'].fillna('未回答').astype(str).str.strip()
+    df['バイト有無'] = df['バイト有無'].fillna('未回答').astype(str).str.strip()
+    df['平日バイト曜日'] = df['平日バイト曜日'].fillna('なし').astype(str).str.strip()
+    df['睡眠時間'] = df['睡眠時間'].fillna('未回答').astype(str).str.strip()
+    df['睡眠満足度'] = df['睡眠満足度'].fillna('未回答').astype(str).str.strip()
+    df['満足度が低い理由'] = df['満足度が低い理由'].fillna('特になし').astype(str).str.strip()
+    df['時間の使い方'] = df['時間の使い方'].fillna('未回答').astype(str).str.strip()
+    df['集中度'] = df['集中度'].fillna('未回答').astype(str).str.strip()
+    df['集中できない理由'] = df['集中できない理由'].fillna('特になし').astype(str).str.strip()
 
     # 学科名の表記揺れ吸収
     name_map = {
-        'ＩｏＴ＋ＡＩ科': 'IoT+AI科', 'Ｗｅｂ動画クリエイター科': 'Web動画クリエイター科',
+        'Ｉｏｔ＋ＡＩ科': 'IoT+AI科', 'ＩｏＴ＋ＡＩ科': 'IoT+AI科', 'Ｗｅｂ動画クリエイター科': 'Web動画クリエイター科',
         'データサイエンス＋ＡＩ科': 'データサイエンス＋AI科', 'データサイエンス＋AI科': 'データサイエンス＋AI科',
         'ｹﾞｰﾑ+ﾃﾞｼﾞﾀﾙｸリエイター科': 'ゲーム＋デジタルクリエイター科', '建 筑 科': '建築科'
     }
     df['学科名_修正'] = df['学科'].replace(name_map)
 
+    # バイト日数の計算ロジック
     def calculate_work_days(val):
-        if pd.isna(val) or val == "" or val == "なし": return 0
+        if pd.isna(val) or val == "" or val == "なし" or val == "未回答": 
+            return 0
         val_str = str(val)
         if "から" in val_str:
             nums = [int(s) for s in val_str if s.isdigit()]
             return sum(nums) / len(nums) if nums else 2
-        if "毎日" in val_str: return 5
+        if "毎日" in val_str: 
+            return 5
         return len(val_str.split(','))
 
     df['バイト日数'] = df['平日バイト曜日'].apply(calculate_work_days)
@@ -139,7 +143,7 @@ df, sleep_order, focus_order, sat_order = load_and_preprocess(uploaded_file)
 if uploaded_file is not None:
     st.sidebar.success(f"✅ 実際のデータ（{len(df)}名分）を読み込みました！")
 else:
-    st.sidebar.info("💡 現在はデモデータ(169名)を表示中。左メニューからCSVをアップロードしてください。")
+    st.sidebar.info("💡 現在はデモデータ表示中。左メニューからCSVをアップロードしてください。")
 
 menu = st.sidebar.radio(
     "表示を切り替える", 
@@ -171,11 +175,14 @@ if menu == "全体サマリー":
     c1, c2 = st.columns([6, 4])
     with c1:
         st.subheader("📊 睡眠時間別の集中度内訳")
-        # 未回答を除外して集計
         df_ct = df[df['睡眠時間'] != '未回答']
         if not df_ct.empty:
-            ct = pd.crosstab(df_ct['睡眠時間'], df_ct['集中度'], normalize='index') * 100
-            fig = px.bar(ct, color_discrete_map=color_map, barmode='stack', labels={'value':'割合 (%)'})
+            # 描画バグを防ぐため一時的に文字列型にキャストしてクロス集計
+            ct = pd.crosstab(df_ct['睡眠時間'].astype(str), df_ct['集中度'].astype(str), normalize='index') * 100
+            valid_sleep = [o for o in sleep_order if o in ct.index]
+            ct = ct.reindex(valid_sleep)
+            
+            fig = px.bar(ct, color_discrete_map=color_map, barmode='stack', labels={'value':'割合 (%)', 'index':'睡眠時間'})
             fig.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -183,10 +190,10 @@ if menu == "全体サマリー":
         
     with c2:
         st.subheader("📌 集中を妨げる原因（全体ランキング）")
-        # '特になし' や空白を除外してランキング
         df_reasons = df[~df['集中できない理由'].isin(['特になし', '未回答'])]
         if not df_reasons.empty:
-            reasons = df_reasons['集中できない理由'].str.split(', ').explode().value_counts().reset_index()
+            reasons = df_reasons['集中できない理由'].str.split(', ').explode().str.strip().value_counts().reset_index()
+            reasons.columns = ['集中できない理由', 'count']
             fig_reason = px.bar(reasons, x='count', y='集中できない理由', orientation='h', color='count', color_continuous_scale='Blues')
             fig_reason.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig_reason, use_container_width=True)
@@ -209,17 +216,19 @@ if menu == "全体サマリー":
         max_count = edge_data['count'].max() if not edge_data.empty else 1
         
         for _, row in edge_data.iterrows():
-            if row['睡眠満足度'] in pos_node and row['集中度'] in pos_node:
-                x0, y0 = pos_node[row['睡眠満足度']]
-                x1, y1 = pos_node[row['集中度']]
+            sat_label = str(row['睡眠満足度'])
+            focus_label = str(row['集中度'])
+            if sat_label in pos_node and focus_label in pos_node:
+                x0, y0 = pos_node[sat_label]
+                x1, y1 = pos_node[focus_label]
                 width = (row['count'] / max_count) * 8 + 1
-                line_color = color_map.get(row['集中度'], '#cbd5e1')
+                line_color = color_map.get(focus_label, '#cbd5e1')
                 
                 edge_trace = go.Scatter(
                     x=[x0, x1, None], y=[y0, y1, None],
                     line=dict(width=width, color=line_color),
                     hoverinfo='text',
-                    text=f"{row['睡眠満足度']} ➔ {row['集中度']}: {row['count']}名",
+                    text=f"{sat_label} ➔ {focus_label}: {row['count']}名",
                     mode='lines'
                 )
                 edge_traces.append(edge_trace)
@@ -241,15 +250,18 @@ if menu == "全体サマリー":
             textfont=dict(size=12, family=FONT_NAME)
         )
         
-        fig_network = go.Figure(data=edge_traces + [node_trace])
-        fig_network.update_layout(
-            showlegend=False, hovermode='closest',
-            margin=dict(b=20, l=80, r=80, t=20),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0.5, 2.5]),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 5]),
-            font=dict(family=FONT_NAME), height=400
-        )
-        st.plotly_chart(fig_network, use_container_width=True)
+        if edge_traces:
+            fig_network = go.Figure(data=edge_traces + [node_trace])
+            fig_network.update_layout(
+                showlegend=False, hovermode='closest',
+                margin=dict(b=20, l=80, r=80, t=20),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0.5, 2.5]),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 5]),
+                font=dict(family=FONT_NAME), height=400
+            )
+            st.plotly_chart(fig_network, use_container_width=True)
+        else:
+            st.caption("ネットワークを構成する有効なデータが不足しています。")
 
 
 # --- 📊 閲覧者が選べる自由分析バー ---
@@ -289,11 +301,13 @@ elif menu == "📊 閲覧者が選べる自由分析バー":
         st.subheader("📊 選択されたグループの睡眠時間別×集中度内訳")
         df_filtered_ct = df_filtered[df_filtered['睡眠時間'] != '未回答']
         if not df_filtered_ct.empty:
-            ct_filtered = pd.crosstab(df_filtered_ct['睡眠時間'], df_filtered_ct['集中度'], normalize='index') * 100
+            ct_filtered = pd.crosstab(df_filtered_ct['睡眠時間'].astype(str), df_filtered_ct['集中度'].astype(str), normalize='index') * 100
             ct_filtered = ct_filtered.fillna(0)
             fig_filtered = px.bar(ct_filtered, color_discrete_map=color_map, barmode='stack', labels={'value':'割合 (%)'}, height=500)
             fig_filtered.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig_filtered, use_container_width=True)
+        else:
+            st.caption("表示可能なデータがありません。")
 
 
 # --- 5. 睡眠・集中の詳細分析 ---
@@ -315,14 +329,15 @@ elif menu == "睡眠・集中の詳細分析":
         df_reasons = df[(df['集中できない理由'] != '特になし') & (df['満足度が低い理由'] != '特になし')]
         if not df_reasons.empty:
             G = nx.Graph()
-            reasons_f = df_reasons['集中できない理由'].str.split(', ').explode()
-            reasons_s = df_reasons['満足度が低い理由'].str.split(', ').explode()
+            reasons_f = df_reasons['集中できない理由'].str.split(', ').explode().str.strip()
+            reasons_s = df_reasons['満足度が低い理由'].str.split(', ').explode().str.strip()
             top_f = reasons_f.value_counts().head(5).index.tolist()
             top_s = reasons_s.value_counts().head(5).index.tolist()
             
             for rf in top_f:
                 for rs in top_s:
-                    if rf != rs: G.add_edge(rf, rs, weight=np.random.randint(1, 5))
+                    if rf != rs and rf != "" and rs != "": 
+                        G.add_edge(rf, rs, weight=np.random.randint(1, 5))
                         
             if len(G.nodes) > 0:
                 fig, ax = plt.subplots(figsize=(10, 5))
@@ -332,8 +347,11 @@ elif menu == "睡眠・集中の詳細分析":
                 nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
                 plt.axis('off')
                 st.pyplot(fig)
+                plt.close(fig)
             else:
                 st.caption("データが不足しています。")
+        else:
+            st.caption("理由データが不足しています。")
 
     with tab2:
         st.subheader("🍕 全体の集中度内訳（割合）")
@@ -352,6 +370,7 @@ elif menu == "睡眠・集中の詳細分析":
             ax.set_ylabel("集中度スコア", fontfamily=FONT_NAME)
             fig.colorbar(hb, ax=ax, label='学生数')
             st.pyplot(fig)
+            plt.close(fig)
 
     with tab4:
         st.subheader("📊 アルバイト有無別の相関トレンド散布図")
@@ -360,9 +379,11 @@ elif menu == "睡眠・集中の詳細分析":
         categories = ["はい", "いいえ"]
         colors = ["#ef4444", "#3b82f6"] 
         
+        has_data = False
         for i, cat in enumerate(categories):
             sub_df = df_plot[df_plot["バイト有無"] == cat]
             if len(sub_df) > 1:
+                has_data = True
                 x_data = sub_df["睡眠時間_数値"].to_numpy()
                 y_data = sub_df["集中度_数値"].to_numpy()
                 x_jitter = x_data + np.random.uniform(-0.15, 0.15, size=len(x_data))
@@ -385,18 +406,25 @@ elif menu == "睡眠・集中の詳細分析":
                 except:
                     pass
         
-        fig_custom.update_layout(font_family=FONT_NAME, height=500, showlegend=False,
-                                 yaxis=dict(title="集中度スコア (1〜4)", range=[0.5, 4.5]))
-        fig_custom.update_xaxes(title_text="睡眠時間 (時間)", range=[3.5, 9.5])
-        st.plotly_chart(fig_custom, use_container_width=True)
+        if has_data:
+            fig_custom.update_layout(font_family=FONT_NAME, height=500, showlegend=False,
+                                     yaxis=dict(title="集中度スコア (1〜4)", range=[0.5, 4.5]))
+            fig_custom.update_xaxes(title_text="睡眠時間 (時間)", range=[3.5, 9.5])
+            st.plotly_chart(fig_custom, use_container_width=True)
+        else:
+            st.caption("散布図を描画するためのデータが不足しています。")
 
     with tab5:
         st.subheader("🎻 きれいなバイオリン分布図（密度の波形）")
-        if not df_plot.empty:
+        df_violin = df_violin = df_plot[df_plot['睡眠時間'] != '未回答']
+        if not df_violin.empty:
             fig, ax = plt.subplots(figsize=(10, 5))
-            sns.violinplot(data=df_plot[df_plot['睡眠時間'] != '未回答'], x="睡眠時間", y="集中度_数値", palette="Pastel1", inner="quartile", ax=ax)
+            sns.violinplot(data=df_violin, x="睡眠時間", y="集中度_数値", palette="Pastel1", inner="quartile", ax=ax)
             ax.set_xticklabels(ax.get_xticklabels(), fontfamily=FONT_NAME)
             st.pyplot(fig)
+            plt.close(fig)
+        else:
+            st.caption("データが不足しています。")
 
 
 # --- 6. 日本人 vs 留学生比較 ---
@@ -440,9 +468,13 @@ elif menu == "日本人 vs 留学生比較":
                 data_ct = data[data['睡眠時間'] != '未回答']
                 if not data_ct.empty:
                     s_dist = data_ct['睡眠時間'].value_counts(normalize=True).sort_index() * 100
-                    fig_bar = px.bar(s_dist, range_y=[0, 100], color_discrete_sequence=[color], labels={'value':'割合 (%)'})
+                    fig_bar = px.bar(s_dist, range_y=[0, 100], color_discrete_sequence=[color], labels={'value':'割合 (%)', 'index':'睡眠時間'})
                     fig_bar.update_layout(font_family=FONT_NAME)
                     st.plotly_chart(fig_bar, use_container_width=True)
+                else:
+                    st.caption("有効な睡眠時間データがありません。")
+            else:
+                st.caption("該当者が0名です。")
 
     st.divider()
     st.subheader("🛡️ 多角的な指標比較")
@@ -455,6 +487,8 @@ elif menu == "日本人 vs 留学生比較":
             fig_pie_a.update_traces(textposition='inside', textinfo='percent+label')
             fig_pie_a.update_layout(margin=dict(t=50, b=20, l=20, r=20), showlegend=False, font_family=FONT_NAME)
             st.plotly_chart(fig_pie_a, use_container_width=True)
+        else:
+            st.caption("グループAのデータがありません。")
     with p2:
         df_b_pie = df_b[df_b['集中度'] != '未回答']
         if not df_b_pie.empty:
@@ -462,29 +496,46 @@ elif menu == "日本人 vs 留学生比較":
             fig_pie_b.update_traces(textposition='inside', textinfo='percent+label')
             fig_pie_b.update_layout(margin=dict(t=50, b=20, l=20, r=20), showlegend=False, font_family=FONT_NAME)
             st.plotly_chart(fig_pie_b, use_container_width=True)
+        else:
+            st.caption("グループBのデータがありません。")
     with rd:
         fig_radar = go.Figure()
-        if not df_a.empty:
+        has_radar = False
+        if not df_a.empty and df_a['睡眠時間_数値'].sum() > 0:
             fig_radar.add_trace(go.Scatterpolar(r=[df_a['睡眠時間_数値'].mean(), df_a['集中度_数値'].mean()*2, df_a['満足度_数値'].mean()*2], theta=['睡眠時間', '集中スコア', '満足度スコア'], fill='toself', name='A'))
-        if not df_b.empty:
+            has_radar = True
+        if not df_b.empty and df_b['睡眠時間_数値'].sum() > 0:
             fig_radar.add_trace(go.Scatterpolar(r=[df_b['睡眠時間_数値'].mean(), df_b['集中度_数値'].mean()*2, df_b['満足度_数値'].mean()*2], theta=['睡眠時間', '集中スコア', '満足度スコア'], fill='toself', name='B'))
-        fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 8.5])), margin=dict(t=50, b=20, l=20, r=20), font_family=FONT_NAME)
-        st.plotly_chart(fig_radar, use_container_width=True)
+            has_radar = True
+        
+        if has_radar:
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 8.5])), margin=dict(t=50, b=20, l=20, r=20), font_family=FONT_NAME)
+            st.plotly_chart(fig_radar, use_container_width=True)
+        else:
+            st.caption("レーダーチャートを描画する十分なデータがありません。")
 
     st.divider()
     st.subheader("🌳 階層構造の分析（属性 ＞ 学科 ＞ 学年 ＞ 集中）")
     df_sun = pd.concat([df_a, df_b]).drop_duplicates() if not (df_a.empty and df_b.empty) else df
     df_sun = df_sun.copy()
     
-    # 未回答やnull表記を排除
     df_sun = df_sun[(df_sun['属性'] != '未回答') & (df_sun['学科名_修正'] != '未回答') & (df_sun['学年'] != '未回答') & (df_sun['集中度'] != '未回答')]
     
     if not df_sun.empty:
-        # グループ化して一意なデータ構造に変換
-        df_sun_grouped = df_sun.groupby(['属性', '学科名_修正', '学年', '集中度']).size().reset_index(name='counts')
-        fig_sun = px.sunburst(df_sun_grouped, path=['属性', '学科名_修正', '学年', '集中度'], values='counts', color='集中度', color_discrete_map=color_map)
-        fig_sun.update_layout(font_family=FONT_NAME)
-        st.plotly_chart(fig_sun, use_container_width=True)
+        df_sun_grouped = df_sun.groupby(['属性', '学科名_修正', '学年', '集中度'], observed=False).size().reset_index(name='counts')
+        df_sun_grouped = df_sun_grouped[df_sun_grouped['counts'] > 0]
+        if not df_sun_grouped.empty:
+            # 🌟【最重要修正】Plotlyの階層計算時のCategoricalエラーを防ぐため文字列にキャスト
+            for col_path in ['属性', '学科名_修正', '学年', '集中度']:
+                df_sun_grouped[col_path] = df_sun_grouped[col_path].astype(str)
+                
+            fig_sun = px.sunburst(df_sun_grouped, path=['属性', '学科名_修正', '学年', '集中度'], values='counts', color='集中度', color_discrete_map=color_map)
+            fig_sun.update_layout(font_family=FONT_NAME)
+            st.plotly_chart(fig_sun, use_container_width=True)
+        else:
+            st.caption("サンバースト図用のデータがありません。")
+    else:
+        st.caption("データが不足しています。")
 
     # --- 最下部の自由分析バー ---
     st.divider()
@@ -517,8 +568,8 @@ elif menu == "日本人 vs 留学生比較":
     def get_free_filtered_v3(dept, focus_reason, sleep_reason, days_range):
         tmp = df.copy()
         if dept != "全体": tmp = tmp[tmp['学科名_修正'] == dept]
-        if focus_reason != "全体": tmp = tmp[tmp['集中できない理由'].str.contains(focus_reason, regex=False)]
-        if sleep_reason != "全体": tmp = tmp[tmp['満足度が低い理由'].str.contains(sleep_reason, regex=False)]
+        if focus_reason != "全体": tmp = tmp[tmp['集中できない理由'].str.contains(focus_reason, regex=False, na=False)]
+        if sleep_reason != "全体": tmp = tmp[tmp['満足度が低い理由'].str.contains(sleep_reason, regex=False, na=False)]
         tmp = tmp[(tmp['バイト日数'] >= days_range[0]) & (tmp['バイト日数'] <= days_range[1])]
         return tmp
 
@@ -535,7 +586,10 @@ elif menu == "日本人 vs 留学生比較":
             f_sleep_avg1 = df_free_1_ct[df_free_1_ct['睡眠時間_数値'] > 0]['睡眠時間_数値'].mean()
             f_focus_avg1 = (df_free_1_ct['集中度_数値'] >= 3).mean() * 100
             st.write(f"💡 平均睡眠時間: `{f_sleep_avg1:.1f}時間` / 集中良好率: `{f_focus_avg1:.1f}%`")
-            fig_free_1 = px.bar(df_free_1_ct['集中度'].value_counts().reset_index(), x='count', y='集中度', orientation='h', color='集中度', color_discrete_map=color_map, height=250)
+            
+            val_counts = df_free_1_ct['集中度'].value_counts().reset_index()
+            val_counts.columns = ['集中度', 'count']
+            fig_free_1 = px.bar(val_counts, x='count', y='集中度', orientation='h', color='集中度', color_discrete_map=color_map, height=250)
             fig_free_1.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10), font_family=FONT_NAME)
             st.plotly_chart(fig_free_1, use_container_width=True, key="free_chart_left_unique")
         else:
@@ -548,7 +602,10 @@ elif menu == "日本人 vs 留学生比較":
             f_sleep_avg2 = df_free_2_ct[df_free_2_ct['睡眠時間_数値'] > 0]['睡眠時間_数値'].mean()
             f_focus_avg2 = (df_free_2_ct['集中度_数値'] >= 3).mean() * 100
             st.write(f"💡 平均睡眠時間: `{f_sleep_avg2:.1f}時間` / 集中良好率: `{f_focus_avg2:.1f}%`")
-            fig_free_2 = px.bar(df_free_2_ct['集中度'].value_counts().reset_index(), x='count', y='集中度', orientation='h', color='集中度', color_discrete_map=color_map, height=250)
+            
+            val_counts2 = df_free_2_ct['集中度'].value_counts().reset_index()
+            val_counts2.columns = ['集中度', 'count']
+            fig_free_2 = px.bar(val_counts2, x='count', y='集中度', orientation='h', color='集中度', color_discrete_map=color_map, height=250)
             fig_free_2.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10), font_family=FONT_NAME)
             st.plotly_chart(fig_free_2, use_container_width=True, key="free_chart_right_unique")
         else:

@@ -7,4 +7,3 @@ plotly
 networkx
 openpyxl
 scipy
-japanize-matplotlib

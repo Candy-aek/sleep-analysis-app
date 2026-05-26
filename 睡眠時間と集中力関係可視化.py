@@ -7,14 +7,28 @@ import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx  # ネットワークグラフ用
 import os
-
-# --- 0. グラフのフォント・スタイル設定（日本語化・文字化け対策） ---
-FONT_NAME = 'MS Gothic'
-plt.rcParams['font.family'] = FONT_NAME
-sns.set(font=FONT_NAME, style='whitegrid')
-
-# Plotlyのデフォルトフォントを日本語に設定
 import plotly.io as pio
+
+# --- 0. グラフのフォント・スタイル設定（OS自動判別・日本語化・文字化け対策） ---
+
+# 1. 実行環境（OS）に合わせて最適な日本語フォントを自動選択
+# Windowsなら 'MS Gothic'、Macなら 'AppleGothic'、Linux(Streamlit Cloud)なら 'Noto Sans CJK JP'
+if os.name == 'nt':
+    FONT_NAME = 'MS Gothic'
+else:
+    # サーバー環境（Linux等）やMacを考慮したフォントフォールバック
+    FONT_NAME = 'Noto Sans CJK JP'
+
+# 2. Matplotlib / Seaborn / NetworkX 用の日本語フォント設定
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = [FONT_NAME, 'MS Gothic', 'AppleGothic', 'TakaoPGothic', 'sans-serif']
+
+# Seabornのスタイル適用（フォントが上書きされないように再設定）
+sns.set(font=FONT_NAME, style='whitegrid')
+# NetworkXや一部のグラフバグを防ぐため、family側にも直接代入
+plt.rcParams['font.family'] = FONT_NAME
+
+# 3. Plotly 用の日本語フォント設定
 pio.templates.default = "plotly_white"
 pio.templates[pio.templates.default].layout.font.family = FONT_NAME
 

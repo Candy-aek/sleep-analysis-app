@@ -15,8 +15,7 @@ if os.name == 'nt':  # Windowsの場合
 else:  # Mac / Linux (Streamlit Cloud) の場合
     font_candidates = ['Noto Sans CJK JP', 'AppleGothic', 'sans-serif']
 
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = font_candidates
+plt.rcParams['font.family'] = 'Meiryo'
 
 FONT_NAME = font_candidates[0]
 sns.set(font=FONT_NAME, style='whitegrid')

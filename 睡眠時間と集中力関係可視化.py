@@ -17,7 +17,6 @@ def setup_japanese_font():
     日本語フォントをセットアップする関数。
     Windows / Mac / Linux (GitHub, Streamlit Cloud) すべてで動作する。
     """
-    # --- Step 1: システムにあるフォントを優先的に探す ---
     preferred_fonts = [
         'Noto Sans CJK JP',   # Linux / Streamlit Cloud
         'Noto Sans JP',
@@ -36,7 +35,6 @@ def setup_japanese_font():
         if font in available:
             return font
 
-    # --- Step 2: フォントが見つからない場合、NotoSansJPをダウンロードする ---
     font_dir = os.path.expanduser("~/.fonts")
     font_path = os.path.join(font_dir, "NotoSansJP-Regular.ttf")
 
@@ -46,10 +44,8 @@ def setup_japanese_font():
         try:
             urllib.request.urlretrieve(url, font_path)
         except Exception:
-            # ダウンロード失敗時はデフォルトフォントを使用
             return "DejaVu Sans"
 
-    # ダウンロードしたフォントをmatplotlibに登録
     fm.fontManager.addfont(font_path)
     prop = fm.FontProperties(fname=font_path)
     return prop.get_name()
@@ -57,12 +53,10 @@ def setup_japanese_font():
 
 FONT_NAME = setup_japanese_font()
 
-# matplotlibとseabornにフォントを適用
 plt.rcParams['font.family'] = FONT_NAME
 plt.rcParams['axes.unicode_minus'] = False  # マイナス記号の文字化け防止
 sns.set(font=FONT_NAME, style='whitegrid')
 
-# Plotlyにフォントを適用
 pio.templates.default = "plotly_white"
 pio.templates[pio.templates.default].layout.font.family = FONT_NAME
 
@@ -74,11 +68,9 @@ st.set_page_config(page_title="TTC 睡眠x集中力 分析ダッシュボード"
 def load_and_preprocess(uploaded_file):
     df = None
     
-    # 🌟 フォルダ内から自動的にアンケートCSVファイルを検索するシステム
     current_dir_files = os.listdir('.')
     csv_files = [f for f in current_dir_files if f.endswith('.csv') and not f.startswith('.')]
     
-    # パターン1: ユーザーが画面からファイルをアップロードした場合
     if uploaded_file is not None:
         for enc in ['utf-8', 'shift_jis', 'cp932']:
             try:
@@ -88,7 +80,6 @@ def load_and_preprocess(uploaded_file):
             except Exception:
                 continue
                 
-    # パターン2: アップロードがない場合、フォルダ内のCSVファイルを自動読込
     elif len(csv_files) > 0:
         for enc in ['utf-8', 'shift_jis', 'cp932']:
             try:
@@ -97,7 +88,6 @@ def load_and_preprocess(uploaded_file):
             except Exception:
                 continue
 
-    # 🌟 ファイルの読み込みに成功した場合の処理（列名のマッピングと補正）
     if df is not None:
         try:
             base_columns = [
@@ -119,7 +109,6 @@ def load_and_preprocess(uploaded_file):
         except Exception:
             pass
     
-    # パターン3: 万が一ファイルが1つも見つからなかった場合のみ、バックアップとしてデモデータを生成
     if df is None:
         np.random.seed(42)
         data = {
@@ -138,12 +127,10 @@ def load_and_preprocess(uploaded_file):
         }
         df = pd.DataFrame(data)
 
-    # 🌟【空白・欠損値対策】文字型の列の揺れを綺麗にする
     for col in ['学科', '学年', '属性', 'バイト有無', '平日バイト曜日', '睡眠時間', '睡眠満足度', '満足度が低い理由', '時間の使い方', '集中度', '集中できない理由']:
         if col in df.columns:
             df[col] = df[col].fillna('未回答').astype(str).str.strip()
 
-    # 学科名の表記揺れ吸収
     name_map = {
         'Ｉｏｔ＋ＡＩ科': 'IoT+AI科', 'ＩｏＴ＋ＡＩ科': 'IoT+AI科', 'IoT+AI科': 'IoT+AI科', 'IoT＋AI科': 'IoT+AI科',
         'Ｗｅｂ動画クリエイター科': 'Web動画クリエイター科', 'Web動画クリエイター科': 'Web動画クリエイター科',
@@ -153,7 +140,6 @@ def load_and_preprocess(uploaded_file):
     }
     df['学科名_修正'] = df['学科'].replace(name_map)
 
-    # バイト日数の計算ロジック
     def calculate_work_days(val):
         if pd.isna(val) or val == "" or val == "なし" or val == "未回答": 
             return 0
@@ -167,7 +153,6 @@ def load_and_preprocess(uploaded_file):
 
     df['バイト日数'] = df['平日バイト曜日'].apply(calculate_work_days)
 
-    # 数値化マッピング
     sleep_map = {'5時間以下': 4.5, '5時間から6時間': 5.5, '6時間から7時間': 6.5, '7時間から8時間': 7.5, '8時間以上': 8.5}
     focus_map = {'よく集中できている': 4.0, '集中できている': 3.0, 'あまり集中できていない': 2.0, 'まったく集中できていない': 1.0}
     sat_map = {'とても満足している': 4.0, '満足している': 3.0, 'あまり満足していない': 2.0, 'まったく満足していない': 1.0}
@@ -194,7 +179,6 @@ def load_and_preprocess(uploaded_file):
 st.sidebar.title("🔍 分析メニュー")
 uploaded_file = st.sidebar.file_uploader("アンケート結果CSVファイルをアップロード", type=["csv"])
 
-# データを読み込む
 df, sleep_order, focus_order, sat_order = load_and_preprocess(uploaded_file)
 
 current_files = os.listdir('.')
@@ -249,6 +233,7 @@ if menu == "全体サマリー":
             fig = px.bar(ct, color_discrete_map=color_map, barmode='stack', labels={'value':'割合 (%)', 'index':'睡眠時間'})
             fig.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig, use_container_width=True)
+            st.caption("💡 **見方**: 睡眠時間が長くなるにつれて、青（よく集中）や緑（集中できている）の割合がどのように変化するかを100%積立棒グラフで示しています。")
         else:
             st.caption("データがありません。")
         
@@ -261,11 +246,13 @@ if menu == "全体サマリー":
             fig_reason = px.bar(reasons, x='count', y='集中できない理由', orientation='h', color='count', color_continuous_scale='Blues')
             fig_reason.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig_reason, use_container_width=True)
+            st.caption("💡 **見方**: 学生が「授業に集中できない」と感じる主な原因の回答数を集計したものです（複数回答含む）。上位にきている要因ほど、学校全体で共通する課題と言えます。")
         else:
             st.caption("データがありません。")
 
     st.divider()
     st.subheader("🕸️ 睡眠満足度と集中力の相関ネットワーク")
+    st.markdown("左側の「睡眠満足度」から右側の「集中度」へ、学生の回答がどのように繋がっているかを表したネットワーク図です。線の太さは該当する学生の多さを示しています。")
     
     df_net = df[(df['睡眠満足度'] != '未回答') & (df['集中度'] != '未回答')]
     if not df_net.empty:
@@ -324,6 +311,7 @@ if menu == "全体サマリー":
                 font=dict(family=FONT_NAME), height=400
             )
             st.plotly_chart(fig_network, use_container_width=True)
+            st.info("💡 **分析のポイント**: 「満足していない」から「あまり集中できない・全く集中できない」へ太い線が伸びている場合、睡眠の質が日中のパフォーマンスに強く悪影響を及ぼしている可能性が分かります。")
         else:
             st.caption("ネットワークを構成する有効なデータが不足しています。")
 
@@ -331,6 +319,7 @@ if menu == "全体サマリー":
 # --- 📊 閲覧者が選べる自由分析バー ---
 elif menu == "📊 閲覧者が選べる自由分析バー":
     st.title("⚙️ インタラクティブ条件絞り込み")
+    st.markdown("上部のセレクトボックスを切り替えることで、特定の学科や学年、バイトをしている学生だけのデータにリアルタイムで絞り込むことができます。")
     
     ctrl1, ctrl2, ctrl3 = st.columns(3)
     with ctrl1:
@@ -370,6 +359,7 @@ elif menu == "📊 閲覧者が選べる自由分析バー":
             fig_filtered = px.bar(ct_filtered, color_discrete_map=color_map, barmode='stack', labels={'value':'割合 (%)'}, height=500)
             fig_filtered.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig_filtered, use_container_width=True)
+            st.markdown(f"👆 **現在のステータス**: これは **「学科: {selected_dept} / 学年: {selected_grade} / バイト: {selected_work}」** に絞り込んだ対象者（{len(df_filtered)}名）の個別データ構造です。")
         else:
             st.caption("表示可能なデータがありません。")
 
@@ -381,13 +371,14 @@ elif menu == "睡眠・集中の詳細分析":
     df_plot = df[(df['睡眠時間'] != '未回答') & (df['集中度'] != '未回答')]
     
     tab1, tab2, tab3 = st.tabs([
-        "1要因ネットワークグラフ", 
+        "1 要因相関ネットワーク", 
         "2 きれいなバイオリン分布図 & 満足度内訳",
         "3 睡眠時間別の平均集中度"
     ])
     
     with tab1:
-        st.subheader("🕸️ 睡眠不満・集中できない理由の相関関係")
+        st.subheader("🕸️ 睡眠不満原因 と 集中できない原因 の相関関係")
+        st.markdown("学生が答えた「睡眠に満足していない理由」と「授業に集中できない理由」のつながり（上位5件ずつ）を可視化したネットワーク図です。")
         df_reasons = df[(df['集中できない理由'] != '特になし') & (df['満足度が低い理由'] != '特になし')]
         if not df_reasons.empty:
             G = nx.Graph()
@@ -406,7 +397,7 @@ elif menu == "睡眠・集中の詳細分析":
                 pos = nx.spring_layout(G, k=0.7, seed=42)
                 nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=1200, alpha=0.8, ax=ax)
                 nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
-                # フォントプロパティを明示的に指定してラベルを描画（日本語対応）
+                
                 font_prop = fm.FontProperties(family=FONT_NAME, size=10)
                 for node, (x, y) in pos.items():
                     ax.text(
@@ -421,19 +412,21 @@ elif menu == "睡眠・集中の詳細分析":
                 plt.axis('off')
                 st.pyplot(fig)
                 plt.close(fig)
+                st.info("💡 **見方**: 青い丸（ノード）同士が線で結ばれている箇所は、日常の生活習慣（睡眠の悪化要因）と学校生活（集中力の低下要因）が深く絡み合っているポイントを示唆しています。")
             else:
                 st.caption("データが不足しています。")
         else:
             st.caption("理由データが不足しています。")
 
     with tab2:
-        st.subheader("バイオリン分布図（密度の波形）")
+        st.subheader("🎻 バイオリン分布図（集中度スコアの密度分布）")
+        st.markdown("睡眠時間のグループごとに、集中度（1〜4点）がどのように分布しているかを「形（密度）」で表したグラフです。中央の線は四分位点を示します。")
         df_violin = df_plot[df_plot['睡眠時間'] != '未回答']
         if not df_violin.empty:
             font_prop = fm.FontProperties(family=FONT_NAME, size=10)
             fig, ax = plt.subplots(figsize=(10, 4))
             sns.violinplot(data=df_violin, x="睡眠時間", y="集中度_数値", hue="睡眠時間", palette="Pastel1", legend=False, inner="quartile", ax=ax)
-            # ラベルに明示的にフォントを適用
+            
             for label in ax.get_xticklabels():
                 label.set_fontproperties(font_prop)
             for label in ax.get_yticklabels():
@@ -442,6 +435,7 @@ elif menu == "睡眠・集中の詳細分析":
             ax.set_xlabel("睡眠時間", fontproperties=font_prop)
             st.pyplot(fig)
             plt.close(fig)
+            st.caption("💡 **見方**: バイオリンの膨らみが上部（4付近）にあるほど、その睡眠時間帯の学生は「よく集中できている」割合が高いことを意味します。上下に引き伸ばされている場合は、個人差が大きいことを示します。")
         else:
             st.caption("データが不足しています。")
 
@@ -468,6 +462,7 @@ elif menu == "睡眠・集中の詳細分析":
             )
             fig_sat_bar.update_layout(font_family=FONT_NAME, yaxis_range=[0, 100])
             st.plotly_chart(fig_sat_bar, use_container_width=True)
+            st.caption("💡 **見方**: 睡眠の「時間の長さ」が、本人の「満足度（質）」にどう直結しているかを表しています。時間が長くても不満が多い場合は、睡眠の質自体に課題があります。")
         else:
             st.caption("データが不足しています。")
 
@@ -504,6 +499,7 @@ elif menu == "睡眠・集中の詳細分析":
                 height=450
             )
             st.plotly_chart(fig_trend, use_container_width=True)
+            st.info("💡 **分析のポイント**: グラフが右肩上がりであれば「寝るほど集中できる」傾向、山型であれば「適切な適正睡眠時間（例: 6〜7時間）が存在する」という仮説が成り立ちます。")
         else:
             st.caption("データが不足しています。")
 
@@ -511,6 +507,7 @@ elif menu == "睡眠・集中の詳細分析":
 # --- 6. 日本人 vs 留学生比較 ---
 elif menu == "日本人 vs 留学生比較":
     st.title("⚖️ 属性・学科・学年の固定・自由比較")
+    st.markdown("グループAとグループBにそれぞれ異なる条件を指定し、2つの集団のライフスタイルや集中度の違いを左右並べて比較できます。")
     
     attrs = ["全体"] + sorted([a for a in df['属性'].unique() if a != '未回答'])
     depts = ["全体"] + sorted([d for d in df['学科名_修正'].unique() if d != '未回答'])
@@ -556,6 +553,7 @@ elif menu == "日本人 vs 留学生比較":
                     st.caption("有効な睡眠時間データがありません。")
             else:
                 st.caption("該当者が0名です。")
+    st.caption("💡 **見方**: 指定した2つのグループ間で、睡眠時間のボリュームゾーン（一番多い時間帯）にズレがあるか、それによって集中良好率に差が出ているかを比較します。")
 
     st.divider()
     st.subheader("🛡️ 多角的な指標比較")
@@ -594,9 +592,11 @@ elif menu == "日本人 vs 留学生比較":
             st.plotly_chart(fig_radar, use_container_width=True)
         else:
             st.caption("レーダーチャートを描画する十分なデータがありません。")
+    st.caption("💡 **見方**: 左・中央の円グラフで各グループの集中度の構成比を詳細に比較し、右側のレーダーチャートで「睡眠時間・集中・満足度」の3つの平均的なバランス（面積の広さや形の歪み）を一目で比較できます。")
 
     st.divider()
     st.subheader("🌳 階層構造の分析（属性 ＞ 学科 ＞ 学年 ＞ 集中）")
+    st.markdown("内側から外側にかけて階層を深掘りしていくサンバースト図（層別円グラフ）です。データ全体がどのような縮尺で構成されているかを俯瞰できます。")
     df_sun = pd.concat([df_a, df_b]).drop_duplicates() if not (df_a.empty and df_b.empty) else df
     df_sun = df_sun.copy()
     df_sun = df_sun[(df_sun['属性'] != '未回答') & (df_sun['学科名_修正'] != '未回答') & (df_sun['学年'] != '未回答') & (df_sun['集中度'] != '未回答')]
@@ -611,14 +611,17 @@ elif menu == "日本人 vs 留学生比較":
             fig_sun = px.sunburst(df_sun_grouped, path=['属性', '学科名_修正', '学年', '集中度'], values='counts', color='集中度', color_discrete_map=color_map)
             fig_sun.update_layout(font_family=FONT_NAME)
             st.plotly_chart(fig_sun, use_container_width=True)
+            st.caption("💡 **見方**: クリックするとその階層へズームインできます。最外周の色（青・緑＝良好、オレンジ・赤＝低下）を見ることで、どの学科の何年生に集中力の低下が見られるかをパターンとして発見できます。")
         else:
             st.caption("サンバースト図用のデータがありません。")
     else:
         st.caption("データが不足しています。")
 
+
     # --- 最下部の自由分析バー ---
     st.divider()
     st.header("🔍 要因・理由まで自由に選べるカスタム比較バー")
+    st.markdown("ここでは学科だけでなく、「夜遅くまでゲームをしている人」や「週4日以上バイトしている人」など、特定の行動理由を持つ学生同士をピンポイントで比較できます。")
 
     def get_unique_reasons(column_name):
         try: 
@@ -658,7 +661,6 @@ elif menu == "日本人 vs 留学生比較":
     st.divider()
     c_res1, c_res2 = st.columns(2)
     
-    # 🌟 自由比較1のデータ出力と可視化
     with c_res1:
         st.markdown(f"### 📊 自由比較1 の集計結果")
         st.metric("該当者数", f"{len(df_free_1)} 名")
@@ -689,7 +691,6 @@ elif menu == "日本人 vs 留学生比較":
         else:
             st.caption("⚠️ 自由比較1の条件に一致する有効なデータがありません。")
             
-    # 🌟 自由比較2のデータ出力と可視化
     with c_res2:
         st.markdown(f"### 📊 自由比較2 の集計結果")
         st.metric("該当者数", f"{len(df_free_2)} 名")
@@ -697,7 +698,7 @@ elif menu == "日本人 vs 留学生比較":
         df_free_2_ct = df_free_2[df_free_2['集中度'] != '未回答']
         if not df_free_2_ct.empty:
             f_sleep_avg2 = df_free_2_ct[df_free_2_ct['睡眠時間_数値'] > 0]['睡眠時間_数値'].mean()
-            f_focus_avg2 = (df_free_2_ct['集中度_数値'] >= 3).mean() * 100 # 🌟 ここを正しく修正しました
+            f_focus_avg2 = (df_free_2_ct['集中度_数値'] >= 3).mean() * 100
             
             sub_col1, sub_col2 = st.columns(2)
             sub_col1.metric("平均睡眠時間", f"{f_sleep_avg2:.1f} 時間" if not pd.isna(f_sleep_avg2) else "データなし")
@@ -719,3 +720,4 @@ elif menu == "日本人 vs 留学生比較":
             st.plotly_chart(fig_free_2, use_container_width=True)
         else:
             st.caption("⚠️ 自由比較2の条件に一致する有効なデータがありません。")
+    st.markdown("💡 **この比較の狙い**: 例えば「生活リズムが崩れている特定の学科」と「規則正しい学科」など、顕著な対比を作ることで、学生指導やカリキュラム改善の具体的なヒントが得られます。")

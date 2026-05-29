@@ -397,34 +397,31 @@ elif menu == "睡眠・集中の詳細分析":
                         G.add_edge(rf, rs, weight=np.random.randint(1, 5))
                         
             if len(G.nodes) > 0:
-                fig, ax = plt.subplots(figsize=(10, 6))  # 縦幅を少し広げて見やすく
-                pos = nx.spring_layout(G, k=0.8, seed=42) # ノード間の距離を少し広げました
+                fig, ax = plt.subplots(figsize=(10, 6))
+                pos = nx.spring_layout(G, k=0.8, seed=42)
                 
-                # --- ノードごとのサイズを設定 ---
                 node_sizes = []
                 for node in G.nodes:
                     if node == "睡眠が足りていない":
-                        node_sizes.append(3000)  # 強調したいノードを大きく
+                        node_sizes.append(3000)
                     else:
-                        node_sizes.append(1200)  # 通常のサイズ
+                        node_sizes.append(1200)
                 
                 nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=node_sizes, alpha=0.8, ax=ax)
                 nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
                 
-                # --- 文字（ラベル）の配置とサイズ調整 ---
                 font_prop = fm.FontProperties(family=FONT_NAME, size=10)
                 for node, (x, y) in pos.items():
-                    # 「睡眠が足りていない」の場合は文字サイズを大きく、少し上に配置して被りを防ぐ
                     if node == "睡眠が足りていない":
-                        text_color = 'black'       # 被っても読めるよう黒文字に
-                        f_size = 14                # 文字を大きく
+                        text_color = 'black'
+                        f_size = 14
                         font_weight = 'bold'
-                        y_offset = y + 0.08        # ノードの少し上にテキストを配置
+                        y_offset = y + 0.08
                     else:
-                        text_color = 'white'       # 通常ノードは丸の内側で白文字
+                        text_color = 'white'
                         f_size = 10
                         font_weight = 'normal'
-                        y_offset = y               # 中心に配置
+                        y_offset = y
                     
                     ax.text(
                         x, y_offset, node,

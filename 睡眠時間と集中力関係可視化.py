@@ -382,6 +382,7 @@ elif menu == "睡眠・集中の詳細分析":
         st.subheader("🕸️ 睡眠不満原因 と 集中できない原因 の相関関係")
         st.markdown("学生が答えた「睡眠に満足していない理由」と「授業に集中できない理由」のつながり（上位5件ずつ）を可視化したネットワーク図です。")
         df_reasons = df[(df['集中できない理由'] != '特になし') & (df['満足度が低い理由'] != '特になし')]
+        
         if not df_reasons.empty:
             G = nx.Graph()
             reasons_f = df_reasons['集中できない理由'].str.split(', ').explode().str.strip()
@@ -395,22 +396,42 @@ elif menu == "睡眠・集中の詳細分析":
                         G.add_edge(rf, rs, weight=np.random.randint(1, 5))
                         
             if len(G.nodes) > 0:
-                fig, ax = plt.subplots(figsize=(10, 5))
-                pos = nx.spring_layout(G, k=0.7, seed=42)
-                nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=1200, alpha=0.8, ax=ax)
+                fig, ax = plt.subplots(figsize=(10, 6))      # 縦幅を少し広げて見やすく
+                pos = nx.spring_layout(G, k=0.8, seed=42)     # ノード同士の間隔を少し広げました
+                
+                # --- 変更点①：「睡眠が足りていない」の丸だけを大きくする ---
+                node_sizes = []
+                for node in G.nodes:
+                    if node == "睡眠が足りていない":
+                        node_sizes.append(3500)  # 目立たせるために特大サイズ（元の約3倍）
+                    else:
+                        node_sizes.append(1200)  # 通常サイズ
+                
+                # node_sizeに作成したリストを渡して描画
+                nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=node_sizes, alpha=0.8, ax=ax)
                 nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
                 
-                font_prop = fm.FontProperties(family=FONT_NAME, size=10)
+                # --- 変更点②：すべての文字を「黒」にして、配置を調整する ---
+                font_prop = fm.FontProperties(family=FONT_NAME, size=11, weight='bold')
                 for node, (x, y) in pos.items():
+                    
+                    if node == "睡眠が足りていない":
+                        f_size = 15            # 一番伝えたいポイントなので文字も大きく
+                        y_offset = y + 0.02     # 丸が大きいので微調整（ほぼ中央〜やや上）
+                    else:
+                        f_size = 11            # 通常の文字サイズ
+                        y_offset = y           # 丸の中心
+                    
+                    # すべての文字を黒（color='black'）でくっきり描画
                     ax.text(
-                        x, y, node,
+                        x, y_offset, node,
                         fontproperties=font_prop,
                         ha='center', va='center',
-                        color='white',
-                        fontsize=10,
-                        fontweight='bold',
+                        color='black',         # 背景の白や薄い青に負けないように「黒」に固定
+                        fontsize=f_size,
                         zorder=5
                     )
+                    
                 plt.axis('off')
                 st.pyplot(fig)
                 plt.close(fig)
@@ -419,7 +440,6 @@ elif menu == "睡眠・集中の詳細分析":
                 st.caption("データが不足しています。")
         else:
             st.caption("理由データが不足しています。")
-
     with tab2:
         st.subheader("🎻 バイオリン分布図（集中度スコアの密度分布）")
         st.markdown("睡眠時間のグループごとに、集中度（1〜4点）がどのように分布しているかを「形（密度）」で表したグラフです。中央の線は四分位点を示します。")

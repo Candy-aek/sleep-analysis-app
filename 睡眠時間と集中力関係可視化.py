@@ -364,6 +364,9 @@ elif menu == "📊 閲覧者が選べる自由分析バー":
             st.caption("表示可能なデータがありません。")
 
 
+
+
+
 # --- 5. 睡眠・集中の詳細分析 ---
 elif menu == "睡眠・集中の詳細分析":
     st.title("📉 統計的な分布と原因の多角分析")
@@ -377,47 +380,70 @@ elif menu == "睡眠・集中の詳細分析":
     ])
     
     with tab1:
-        st.subheader("🕸️ 睡眠不満原因 と 集中できない原因 の相関関係")
-        st.markdown("学生が答えた「睡眠に満足していない理由」と「授業に集中できない理由」のつながり（上位5件ずつ）を可視化したネットワーク図です。")
-        df_reasons = df[(df['集中できない理由'] != '特になし') & (df['満足度が低い理由'] != '特になし')]
-        if not df_reasons.empty:
-            G = nx.Graph()
-            reasons_f = df_reasons['集中できない理由'].str.split(', ').explode().str.strip()
-            reasons_s = df_reasons['満足度が低い理由'].str.split(', ').explode().str.strip()
-            top_f = reasons_f.value_counts().head(5).index.tolist()
-            top_s = reasons_s.value_counts().head(5).index.tolist()
+    st.subheader("🕸️ 睡眠不満原因 と 集中できない原因 の相関関係")
+    st.markdown("学生が答えた「睡眠に満足していない理由」と「授業に集中できない理由」のつながり（上位5件ずつ）を可視化したネットワーク図です。")
+    df_reasons = df[(df['集中できない理由'] != '特になし') & (df['満足度が低い理由'] != '特になし')]
+    if not df_reasons.empty:
+        G = nx.Graph()
+        reasons_f = df_reasons['集中できない理由'].str.split(', ').explode().str.strip()
+        reasons_s = df_reasons['満足度が低い理由'].str.split(', ').explode().str.strip()
+        top_f = reasons_f.value_counts().head(5).index.tolist()
+        top_s = reasons_s.value_counts().head(5).index.tolist()
+        
+        for rf in top_f:
+            for rs in top_s:
+                if rf != rs and rf != "" and rs != "": 
+                    G.add_edge(rf, rs, weight=np.random.randint(1, 5))
+                    
+        if len(G.nodes) > 0:
+            fig, ax = plt.subplots(figsize=(10, 6))  # 縦幅を少し広げて見やすく
+            pos = nx.spring_layout(G, k=0.8, seed=42) # ノード間の距離を少し広げました
             
-            for rf in top_f:
-                for rs in top_s:
-                    if rf != rs and rf != "" and rs != "": 
-                        G.add_edge(rf, rs, weight=np.random.randint(1, 5))
-                        
-            if len(G.nodes) > 0:
-                fig, ax = plt.subplots(figsize=(10, 5))
-                pos = nx.spring_layout(G, k=0.7, seed=42)
-                nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=1200, alpha=0.8, ax=ax)
-                nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
+            # --- 修正ポイント①: ノードごとのサイズを設定 ---
+            node_sizes = []
+            for node in G.nodes:
+                if node == "睡眠が足りていない":
+                    node_sizes.append(3000)  # 強調したいノードを大きく
+                else:
+                    node_sizes.append(1200)  # 通常のサイズ
+            
+            # node_sizeに作成したリストを渡します
+            nx.draw_networkx_nodes(G, pos, node_color='#3b82f6', node_size=node_sizes, alpha=0.8, ax=ax)
+            nx.draw_networkx_edges(G, pos, edge_color='#cbd5e1', width=2, ax=ax)
+            
+            # --- 修正ポイント②: 文字（ラベル）の配置とサイズ調整 ---
+            font_prop = fm.FontProperties(family=FONT_NAME, size=10)
+            for node, (x, y) in pos.items():
+                # 「睡眠が足りていない」の場合は文字サイズを大きく、少し上に配置して被りを防ぐ
+                if node == "睡眠が足りていない":
+                    text_color = 'black'       # 大きな丸に被っても読めるよう、または丸の外に出す用
+                    f_size = 14                # 文字を大きく
+                    font_weight = 'bold'
+                    y_offset = y + 0.08        # ノードの少し上にテキストを配置（被り防止）
+                else:
+                    text_color = 'white'       # 通常ノードは丸の内側で白文字
+                    f_size = 10
+                    font_weight = 'normal'
+                    y_offset = y               # 中心に配置
                 
-                font_prop = fm.FontProperties(family=FONT_NAME, size=10)
-                for node, (x, y) in pos.items():
-                    ax.text(
-                        x, y, node,
-                        fontproperties=font_prop,
-                        ha='center', va='center',
-                        color='white',
-                        fontsize=10,
-                        fontweight='bold',
-                        zorder=5
-                    )
-                plt.axis('off')
-                st.pyplot(fig)
-                plt.close(fig)
-                st.info("💡 **見方**: 青い丸（ノード）同士が線で結ばれている箇所は、日常の生活習慣（睡眠の悪化要因）と学校生活（集中力の低下要因）が深く絡み合っているポイントを示唆しています。")
-            else:
-                st.caption("データが不足しています。")
+                ax.text(
+                    x, y_offset, node,
+                    fontproperties=font_prop,
+                    ha='center', va='center',
+                    color=text_color,
+                    fontsize=f_size,
+                    fontweight=font_weight,
+                    zorder=5
+                )
+                
+            plt.axis('off')
+            st.pyplot(fig)
+            plt.close(fig)
+            st.info("💡 **見方**: 青い丸（ノード）同士が線で結ばれている箇所は、日常の生活習慣（睡眠の悪化要因）と学校生活（集中力の低下要因）が深く絡み合っているポイントを示唆しています。")
         else:
-            st.caption("理由データが不足しています。")
-
+            st.caption("データが不足しています。")
+    else:
+        st.caption("理由データが不足しています。")
     with tab2:
         st.subheader("🎻 バイオリン分布図（集中度スコアの密度分布）")
         st.markdown("睡眠時間のグループごとに、集中度（1〜4点）がどのように分布しているかを「形（密度）」で表したグラフです。中央の線は四分位点を示します。")
